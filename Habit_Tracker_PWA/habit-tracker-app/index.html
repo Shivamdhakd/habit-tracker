@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>[hidden]{display:none!important} html{background:#fff} body{margin:0}</style>
+<title>Habit Tracker</title>
+<meta name="theme-color" content="#111827">
+<meta name="description" content="45-day habit tracker with rules and a quote of the day.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Habit Tracker">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Barlow+Condensed:wght@700;800&family=Caveat:wght@500;600&display=swap">
+<style>
+/* Layout: header, 1-45 grid, quote notebook on the right (desktop), progress, rules. Plain white UI; the dark yellow/red look lives only inside the quote box. */
+:root {
+  --bg: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface2: #F3F5F8;
+  --ink: #111827;
+  --muted: #6B7280;
+  --line: #E3E7ED;
+  --accent: #16A34A;
+  --on-accent: #FFFFFF;
+  --miss: #FDECEC;
+  --q-bg: #0B0B0E;
+  --q-ink: #F2F2EF;
+  --q-muted: #8E8E9A;
+  --q-line: #2C2C35;
+  --q-yellow: #FFD21F;
+  --q-on-yellow: #14120A;
+  --q-red: #EF3B36;
+  --f-body: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-quote-head: 'Barlow Condensed', 'Arial Narrow', Impact, sans-serif;
+  --f-hand: 'Caveat', 'Comic Sans MS', cursive;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.45;
+  padding-block: 18px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(44px, calc(env(safe-area-inset-right, 0px) + 36px));
+}
+@media (min-width: 960px) { body { padding-right: max(16px, env(safe-area-inset-right, 0px)); } }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, [contenteditable]:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.label { font-weight: 700; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+
+.layout { display: grid; gap: 16px; max-width: 1180px; margin: 0 auto; grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "grid" "note" "prog" "rules"; }
+@media (min-width: 960px) {
+  .layout { grid-template-columns: minmax(0, 1fr) 330px; align-items: start;
+    grid-template-areas: "head head" "grid note" "prog note" "rules note"; }
+}
+.head { grid-area: head; display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.head > div:first-child { min-width: 0; }
+h1 { font-weight: 800; font-size: 32px; line-height: 1.05; margin: 0; letter-spacing: -0.01em; }
+.tag { margin: 4px 0 0; color: var(--muted); font-weight: 500; }
+.push { margin: 6px 0 0; color: var(--ink); font-weight: 600; }
+.daybig { flex: none; text-align: right; line-height: 1; }
+.daybig .lbl { display: block; font-size: 12px; letter-spacing: 0.14em; font-weight: 700; color: var(--muted); margin-bottom: 2px; }
+.daybig .n { font-size: 48px; font-weight: 800; }
+.daybig .of { font-size: 18px; font-weight: 600; color: var(--muted); margin-left: 3px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.g-area { grid-area: grid; } .p-area { grid-area: prog; } .r-area { grid-area: rules; }
+
+.editpanel { background: var(--surface2); border: 1px dashed #9CA3AF; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+.editpanel .label { margin-bottom: 8px; color: var(--ink); }
+.erow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.erow label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.erow input[type="number"] { width: 64px; }
+.btn { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-weight: 600; font-size: 14px; }
+.btn:hover { border-color: var(--ink); }
+.btn.yel { background: var(--ink); color: #fff; border-color: var(--ink); }
+.btn.armed, .btn.dng { border-color: #D64545; color: #D64545; }
+.btn.armed { background: #D64545; color: #fff; }
+input[type="text"], input[type="number"], input[type="date"] { font: inherit; font-size: 15px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+
+.gridwrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+table.g { border-collapse: collapse; min-width: 100%; }
+table.g th, table.g td { border: 1px solid var(--line); padding: 0; text-align: center; }
+table.g th.hn, table.g td.hn { position: sticky; left: 0; z-index: 2; background: var(--surface); text-align: left; padding: 0 10px; min-width: 132px; max-width: 132px; font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 1px 0 0 var(--line); }
+body.editing table.g th.hn, body.editing table.g td.hn { min-width: 206px; max-width: 206px; padding: 3px 6px; }
+table.g th.hn { font-size: 12px; letter-spacing: 0.09em; color: var(--muted); background: var(--surface2); }
+table.g th.d { min-width: 28px; height: 28px; font-weight: 700; font-size: 12.5px; color: var(--muted); background: var(--surface2); }
+table.g th.d.now { background: var(--ink); color: #fff; }
+table.g td.c { width: 28px; height: 28px; }
+table.g td.c button { width: 100%; height: 28px; border: 0; background: transparent; padding: 0; display: grid; place-items: center; }
+table.g td.c.miss { background: var(--miss); }
+table.g td.c.now { box-shadow: inset 0 0 0 1.5px var(--ink); }
+table.g td.c.on { background: var(--accent); }
+table.g td.c.on button::after { content: ""; width: 6px; height: 12px; border: solid var(--on-accent); border-width: 0 3px 3px 0; transform: translateY(-1px) rotate(45deg); }
+table.g td.ft { font-size: 11px; color: var(--muted); background: var(--surface2); height: 24px; }
+table.g td.hn.foot { font-size: 11px; letter-spacing: 0.09em; background: var(--surface2); }
+.hedit { display: flex; gap: 6px; align-items: center; }
+.hedit input { flex: 1; min-width: 0; padding: 6px 8px; font-size: 14px; }
+.x { flex: none; width: 30px; height: 30px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; color: #D64545; font-weight: 700; line-height: 1; font-size: 13px; padding: 0; }
+.x.armed { background: #D64545; color: #fff; border-color: #D64545; width: auto; padding: 0 8px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 12.5px; color: var(--muted); align-items: center; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; border: 1px solid var(--line); }
+.addhabit { margin-top: 10px; }
+
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
+.stat { background: var(--surface2); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.stat b { display: block; font-size: 26px; line-height: 1.1; font-weight: 800; }
+.stat:last-child b { color: var(--accent); }
+.stat span { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+@media (max-width: 440px) { .stats { grid-template-columns: repeat(2, 1fr); } h1 { font-size: 26px; } .daybig .n { font-size: 40px; } }
+.chartblock + .chartblock { margin-top: 22px; }
+.ylab { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.bars { display: grid; grid-template-columns: repeat(45, 1fr); gap: 2px; align-items: end; height: 120px;
+  background: linear-gradient(var(--line), var(--line)) 0 0 / 100% 1px no-repeat, linear-gradient(var(--line), var(--line)) 0 50% / 100% 1px no-repeat; }
+.bars .b { background: var(--accent); min-height: 3px; border-radius: 2px 2px 0 0; }
+.bars .b.zero { background: var(--line); }
+.bars .b.now { outline: 2px solid var(--ink); outline-offset: 1px; }
+.axis { position: relative; height: 18px; margin-top: 4px; font-size: 11px; color: var(--muted); }
+.axis span { position: absolute; transform: translateX(-50%); }
+.hrow { display: grid; grid-template-columns: minmax(96px, 170px) 1fr 44px; align-items: center; gap: 10px; padding: 5px 0; }
+.hrow .nm { font-size: 14px; overflow-wrap: anywhere; line-height: 1.2; }
+.hrow .nm small { display: block; color: var(--muted); font-size: 12px; }
+.hrow .tr { height: 10px; background: var(--surface2); border-radius: 5px; overflow: hidden; }
+.hrow .tr i { display: block; height: 100%; background: var(--accent); border-radius: 5px; }
+.hrow .pc { text-align: right; font-weight: 600; font-size: 13px; }
+.weeks { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; height: 140px; }
+.wk { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; font-size: 12px; min-width: 0; }
+.wk .col { width: 100%; max-width: 56px; height: 90px; background: var(--surface2); display: flex; align-items: flex-end; border-radius: 6px 6px 0 0; overflow: hidden; }
+.wk .col i { display: block; width: 100%; background: var(--accent); }
+.wk b { font-weight: 600; } .wk .wl { color: var(--muted); font-weight: 600; letter-spacing: 0.06em; }
+
+.rule { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.rule:first-of-type { border-top: 0; }
+.rtick { width: 34px; height: 34px; border: 2px solid #C5CCD6; background: var(--surface); border-radius: 8px; display: grid; place-items: center; padding: 0; }
+.rtick[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); }
+.rtick[aria-pressed="true"]::after { content: ""; width: 7px; height: 14px; border: solid var(--on-accent); border-width: 0 3px 3px 0; transform: translateY(-1px) rotate(45deg); }
+.rtxt { font-weight: 600; font-size: 16px; overflow-wrap: anywhere; min-width: 0; }
+.rtxt input { width: 100%; }
+.rtxt input.blank { border-style: dashed; font-weight: 400; }
+.rdate { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+.rdate input { font-size: 14px; padding: 6px 8px; letter-spacing: 0; text-transform: none; font-weight: 400; }
+.rside { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 520px) { .rule { grid-template-columns: auto minmax(0, 1fr); } .rside { grid-column: 1 / -1; justify-content: flex-start; padding-left: 46px; } }
+.empty { color: var(--muted); margin: 4px 0; }
+.addrule { display: flex; gap: 8px; margin-top: 12px; }
+.addrule input { flex: 1; }
+
+/* quote notebook: the only themed part of the page */
+.note { grid-area: note; align-self: stretch; }
+.noteinner { position: sticky; top: 16px; }
+.paper { background: var(--q-bg); color: var(--q-ink); border-radius: 12px; padding: 14px 14px 14px 14px; }
+.phead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.phead .ttl { font-family: var(--f-quote-head); font-weight: 800; font-size: 22px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; color: var(--q-yellow); }
+.pager { display: flex; align-items: center; gap: 4px; }
+.pager button { width: 32px; height: 32px; border: 1px solid var(--q-line); background: transparent; color: var(--q-ink); border-radius: 6px; font-weight: 700; padding: 0; }
+.pager .dl { min-width: 56px; text-align: center; font-family: var(--f-quote-head); font-weight: 700; font-size: 18px; letter-spacing: 0.06em; }
+.tools { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
+.tools button { border: 1px solid var(--q-line); background: transparent; color: var(--q-ink); border-radius: 6px; padding: 5px 10px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+.tools .sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.tools .sw.y { background: var(--q-yellow); } .tools .sw.r { background: var(--q-red); } .tools .sw.x { border: 1px solid var(--q-ink); }
+.tools .today { margin-left: auto; }
+.paper button:focus-visible, .paper [contenteditable]:focus-visible { outline-color: var(--q-yellow); }
+.quote { min-height: 300px; font-family: var(--f-hand); font-size: 25px; line-height: 32px; color: var(--q-ink); outline: none; padding: 0 4px 0 18px; word-break: break-word;
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--q-line) 31px, var(--q-line) 32px);
+  background-attachment: local; border-left: 2px solid var(--q-red); margin-left: 4px; }
+.quote:empty::before { content: "Write today's line here. Select words to mark them."; color: var(--q-muted); pointer-events: none; }
+.quote mark { padding: 0 2px; border-radius: 3px; }
+.quote mark.y { background: var(--q-yellow); color: var(--q-on-yellow); }
+.quote mark.r { background: var(--q-red); color: #fff; }
+.hint { min-height: 18px; margin: 8px 0 0; font-size: 12.5px; color: var(--q-muted); }
+
+.edittab { position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 20; writing-mode: vertical-rl; text-orientation: mixed;
+  background: var(--ink); color: #fff; border: 0; border-radius: 8px 0 0 8px; padding: 18px 9px; padding-right: calc(9px + env(safe-area-inset-right, 0px));
+  font-weight: 700; font-size: 14px; letter-spacing: 0.22em; box-shadow: -1px 0 6px rgba(17, 24, 39, .18); }
+body.editing .edittab { background: var(--accent); }
+#status { text-align: center; color: var(--muted); font-size: 12.5px; margin: 14px 0 0; min-height: 18px; }
+@media (prefers-reduced-motion: no-preference) { .btn, .x, td.c, .rtick { transition: background-color .12s, border-color .12s; } }
+</style>
+
+</head>
+<body>
+<div class="layout">
+  <header class="head">
+    <div>
+      <h1>Habit Tracker</h1>
+      <p class="tag">45-day plan</p>
+      <p class="push" id="push"></p>
+    </div>
+    <div class="daybig" aria-label="Current day"><span class="lbl">DAY</span><span class="n num" id="dayN">1</span><span class="of">/ 45</span></div>
+  </header>
+
+  <section class="card g-area" aria-label="45 day tracker">
+    <div class="editpanel" id="editPanel" hidden>
+      <p class="label">Edit mode</p>
+      <div class="erow">
+        <label for="dayIn">Today is day <input type="number" id="dayIn" min="1" max="45"></label>
+        <button class="btn" type="button" data-act="setday">Set</button>
+        <button class="btn" type="button" data-act="day1">Day 1 = today</button>
+        <button class="btn dng" type="button" data-act="clear" id="clearBtn">Clear all ticks</button>
+      </div>
+    </div>
+    <div class="gridwrap" id="gridWrap"><table class="g" id="grid"></table></div>
+    <div class="addhabit" id="addHabit" hidden><button class="btn yel" type="button" data-act="addh">+ Add habit</button></div>
+    <div class="legend">
+      <span><i style="background:var(--yellow)"></i>Done</span>
+      <span><i style="background:rgba(239,59,54,.35)"></i>Missed</span>
+      <span><i style="background:var(--red)"></i>Today</span>
+    </div>
+  </section>
+
+  <aside class="note" aria-label="Quote of the day">
+    <div class="noteinner">
+      <div class="paper">
+        <div class="phead">
+          <span class="ttl">Quote of the day</span>
+          <div class="pager">
+            <button type="button" data-act="nprev" aria-label="Previous day">&lsaquo;</button>
+            <span class="dl num" id="noteDay">Day 1</span>
+            <button type="button" data-act="nnext" aria-label="Next day">&rsaquo;</button>
+          </div>
+        </div>
+        <div class="tools">
+          <button type="button" data-act="mk" data-c="y"><i class="sw y"></i>Yellow</button>
+          <button type="button" data-act="mk" data-c="r"><i class="sw r"></i>Red</button>
+          <button type="button" data-act="mk" data-c="x"><i class="sw x"></i>Erase</button>
+          <button type="button" class="today" data-act="ntoday" id="ntoday" hidden>Today</button>
+        </div>
+        <div class="quote" id="quote" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Quote of the day" spellcheck="false"></div>
+        <p class="hint" id="hint">Select some words, then tap a marker.</p>
+      </div>
+    </div>
+  </aside>
+
+  <section class="card p-area" aria-label="Progress">
+    <p class="label">Progress</p>
+    <div class="stats" id="stats"></div>
+    <div class="chartblock">
+      <p class="label">Daily</p>
+      <div class="ylab"><span>100%</span><span>50%</span></div>
+      <div class="bars" id="daily"></div>
+      <div class="axis" id="dailyAxis"></div>
+    </div>
+    <div class="chartblock">
+      <p class="label">Each habit</p>
+      <div id="byHabit"></div>
+    </div>
+    <div class="chartblock">
+      <p class="label">Each week</p>
+      <div class="weeks" id="weeks"></div>
+    </div>
+  </section>
+
+  <section class="card r-area" aria-label="Rules and penalties">
+    <p class="label">The deal: rules and penalties</p>
+    <div id="rules"></div>
+    <div class="addrule" id="addRule" hidden>
+      <input type="text" id="newRule" maxlength="120" placeholder="e.g. 5 hour screentime = 100 pushups" aria-label="New rule">
+      <button class="btn yel" type="button" data-act="addr">Add rule</button>
+    </div>
+  </section>
+</div>
+<p id="status" role="status"></p>
+<button class="edittab" id="editTab" type="button" aria-pressed="false" aria-label="Edit mode"><span id="editTxt">EDIT</span></button>
+
+<script>
+(function () {
+  var N = 45, MAXH = 12;
+  var DEF = ["Wake up 6 AM", "Meditation", "Stretching", "School Work", "Reading / Learning", "Exercise", "Coding", "Sleep 10 PM"];
+  var KEY = "habit-tracker-45-v2";
+  var ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+  function $(s) { return document.querySelector(s); }
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function parseISO(s) { var p = s.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function zeros() { return new Array(N + 1).join("0"); }
+  function pct(x) { return Math.round(x * 100); }
+
+  // keep only text, line breaks and the two highlighter marks
+  function cleanNode(n) {
+    var s = "";
+    n.childNodes.forEach(function (c) {
+      if (c.nodeType === 3) s += c.nodeValue.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      else if (c.nodeType === 1) {
+        var t = c.tagName;
+        if (t === "BR") s += "<br>";
+        else if (t === "MARK") s += '<mark class="' + (c.classList.contains("r") ? "r" : "y") + '">' + cleanNode(c) + "</mark>";
+        else if (t === "DIV" || t === "P") s += "<div>" + cleanNode(c) + "</div>";
+        else s += cleanNode(c);
+      }
+    });
+    return s;
+  }
+  function clean(html) {
+    var doc = new DOMParser().parseFromString("<body>" + String(html) + "</body>", "text/html");
+    return cleanNode(doc.body).slice(0, 4000);
+  }
+  function plainEmpty(html) { var t = document.createElement("div"); t.innerHTML = html; return !t.textContent.trim(); }
+
+  function blankRules(n) { var a = []; for (var i = 0; i < n; i++) a.push({ t: "", done: false, date: "" }); return a; }
+  function defaults() {
+    return { v: 2, start: iso(new Date()), habits: DEF.slice(), marks: DEF.map(zeros),
+      rules: [{ t: "5 hour screentime = 100 pushups", done: false, date: "" }].concat(blankRules(4)), notes: {} };
+  }
+  function normalize(d) {
+    if (!d || typeof d.start !== "string" || !ISO_RE.test(d.start)) return null;
+    if (!Array.isArray(d.habits) || !Array.isArray(d.marks) || !d.habits.length || d.habits.length !== d.marks.length) return null;
+    var out = { start: d.start };
+    out.habits = d.habits.slice(0, MAXH).map(function (h) { return String(h).slice(0, 40); });
+    out.marks = d.marks.slice(0, MAXH).map(function (m) { m = typeof m === "string" ? m : ""; return (m + zeros()).slice(0, N).replace(/[^1]/g, "0"); });
+    out.rules = Array.isArray(d.rules) ? d.rules.slice(0, 40).map(function (r) {
+      r = r || {};
+      return { t: String(r.t || "").slice(0, 120), done: !!r.done, date: ISO_RE.test(r.date || "") ? r.date : "" };
+    }) : [];
+    if (d.v !== 2 && out.rules.length <= 1) out.rules = out.rules.concat(blankRules(4));
+    out.v = 2;
+    out.notes = {};
+    if (d.notes && typeof d.notes === "object") {
+      for (var i = 0; i < N; i++) {
+        var v = d.notes[i];
+        if (typeof v === "string") { var c = clean(v); if (!plainEmpty(c)) out.notes[i] = c; }
+      }
+    }
+    return out;
+  }
+
+  var hadLocal = false;
+  var state = (function () {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) { var n = normalize(JSON.parse(raw)); if (n) { hadLocal = true; return n; } }
+    } catch (e) {}
+    return defaults();
+  })();
+
+  function todayDate() { var t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
+  function todayIndex() { return Math.round((todayDate() - parseISO(state.start)) / 864e5); }
+  function clampDay(i) { return Math.min(Math.max(i, 0), N - 1); }
+  var noteDay = clampDay(todayIndex());
+  var editing = false;
+  function H() { return state.habits.length; }
+  function isOn(h, d) { return state.marks[h].charAt(d) === "1"; }
+  function habitDone(h) { return (state.marks[h].match(/1/g) || []).length; }
+  function dayDone(d) { var c = 0; for (var h = 0; h < H(); h++) if (isOn(h, d)) c++; return c; }
+  function streak(h) {
+    var ti = todayIndex(); if (ti < 0) return 0;
+    var i = Math.min(ti, N - 1); if (!isOn(h, i)) i--;
+    var c = 0; while (i >= 0 && isOn(h, i)) { c++; i--; }
+    return c;
+  }
+  var CHECK = "";
+
+  // ---------- rendering ----------
+  function renderHead() {
+    var ti = todayIndex(), txt;
+    if (ti < 0) { $("#dayN").textContent = "0"; txt = "Starts in " + (-ti) + (ti === -1 ? " day." : " days."); }
+    else if (ti >= N) { $("#dayN").textContent = String(N); txt = "45 days done. You kept the promise."; }
+    else {
+      $("#dayN").textContent = String(ti + 1);
+      var left = H() - dayDone(ti);
+      txt = left === 0 ? "All done today. Do the same tomorrow." : left + (left === 1 ? " habit" : " habits") + " left today. No negotiating.";
+    }
+    $("#push").textContent = txt;
+  }
+
+  function renderGrid() {
+    var ti = todayIndex(), wrap = $("#gridWrap"), sl = wrap.scrollLeft;
+    var g = '<thead><tr><th class="hn">MY HABITS</th>';
+    for (var d = 0; d < N; d++) g += '<th class="d num' + (d === ti ? " now" : "") + '">' + (d + 1) + "</th>";
+    g += "</tr></thead><tbody>";
+    for (var h = 0; h < H(); h++) {
+      g += '<tr><td class="hn" title="' + esc(state.habits[h]) + '">' + (editing
+        ? '<div class="hedit"><input type="text" class="hin" maxlength="40" data-h="' + h + '" value="' + esc(state.habits[h]) + '" aria-label="Habit ' + (h + 1) + ' name"><button type="button" class="x" data-act="delh" data-h="' + h + '" aria-label="Delete habit">&times;</button></div>'
+        : esc(state.habits[h])) + "</td>";
+      for (var c = 0; c < N; c++) {
+        var on = isOn(h, c), miss = !on && c < ti;
+        g += '<td class="c' + (on ? " on" : "") + (miss ? " miss" : "") + (c === ti ? " now" : "") + '"><button type="button" data-act="tick" data-h="' + h + '" data-d="' + c +
+          '" aria-pressed="' + on + '" aria-label="' + esc(state.habits[h]) + ", day " + (c + 1) + '"></button></td>';
+      }
+      g += "</tr>";
+    }
+    g += '</tbody><tfoot><tr><td class="hn foot">DONE</td>';
+    for (var f = 0; f < N; f++) g += '<td class="ft num">' + dayDone(f) + "</td>";
+    g += "</tr></tfoot>";
+    $("#grid").innerHTML = g;
+    wrap.scrollLeft = sl;
+    $("#addHabit").hidden = !(editing && H() < MAXH);
+  }
+  function scrollToToday() {
+    var th = document.querySelector("#grid th.now"), wrap = $("#gridWrap");
+    if (th) wrap.scrollLeft = th.offsetLeft - wrap.clientWidth / 2 + th.offsetWidth / 2 + 66;
+  }
+
+  function renderCharts() {
+    var goal = H() * N, done = 0, ti = todayIndex();
+    for (var h = 0; h < H(); h++) done += habitDone(h);
+    $("#stats").innerHTML =
+      '<div class="stat"><b class="num">' + goal + "</b><span>Goal</span></div>" +
+      '<div class="stat"><b class="num">' + done + "</b><span>Done</span></div>" +
+      '<div class="stat"><b class="num">' + (goal - done) + "</b><span>Left</span></div>" +
+      '<div class="stat"><b class="num">' + pct(goal ? done / goal : 0) + "%</b><span>Overall</span></div>";
+    var bars = "";
+    for (var k = 0; k < N; k++) {
+      var f = H() ? dayDone(k) / H() : 0;
+      bars += '<div class="b' + (f === 0 ? " zero" : "") + (k === ti ? " now" : "") + '" style="height:' + (f === 0 ? "3px" : Math.max(f * 100, 4) + "%") +
+        '" title="Day ' + (k + 1) + ": " + dayDone(k) + "/" + H() + '"></div>';
+    }
+    $("#daily").innerHTML = bars;
+    var ax = "";
+    [1, 10, 20, 30, 40, 45].forEach(function (n) { ax += '<span style="left:' + ((n - 0.5) / N * 100) + '%">' + n + "</span>"; });
+    $("#dailyAxis").innerHTML = ax;
+    var hb = "";
+    for (var j = 0; j < H(); j++) {
+      var hp = pct(habitDone(j) / N), st = streak(j);
+      hb += '<div class="hrow"><span class="nm">' + esc(state.habits[j]) + (st > 1 ? "<small>" + st + "-day streak</small>" : "") +
+        '</span><span class="tr"><i style="width:' + hp + '%"></i></span><span class="pc num">' + hp + "%</span></div>";
+    }
+    $("#byHabit").innerHTML = hb;
+    var wk = "";
+    for (var w = 0; w < 7; w++) {
+      var a = w * 7, b = Math.min(a + 7, N), sum = 0;
+      for (var q = a; q < b; q++) sum += dayDone(q);
+      var wp = pct(H() ? sum / (H() * (b - a)) : 0);
+      wk += '<div class="wk"><b class="num">' + wp + '%</b><div class="col"><i style="height:' + wp + '%"></i></div><span class="wl">W' + (w + 1) + "</span></div>";
+    }
+    $("#weeks").innerHTML = wk;
+  }
+
+  function renderRules() {
+    var h = "";
+    if (!state.rules.length) h = '<p class="empty">No rules yet. Tap EDIT on the side to add one.</p>';
+    state.rules.forEach(function (r, i) {
+      h += '<div class="rule"><button type="button" class="rtick" data-act="rtick" data-i="' + i + '" aria-pressed="' + r.done + '" aria-label="Mark rule done"></button>' +
+        '<div class="rtxt">' + (editing || !r.t ? '<input type="text" class="rin' + (r.t ? "" : " blank") + '" maxlength="120" data-i="' + i + '" value="' + esc(r.t) + '" placeholder="Write your own rule here" aria-label="Rule text">' : esc(r.t)) + "</div>" +
+        '<div class="rside"><label class="rdate">Done on<input type="date" class="rdi" data-i="' + i + '" value="' + esc(r.date) + '"></label>' +
+        (editing ? '<button type="button" class="x" data-act="delr" data-i="' + i + '" aria-label="Delete rule">&times;</button>' : "") + "</div></div>";
+    });
+    $("#rules").innerHTML = h;
+    $("#addRule").hidden = !editing;
+  }
+
+  function setNote() {
+    var q = $("#quote");
+    q.innerHTML = state.notes[noteDay] ? clean(state.notes[noteDay]) : "";
+    $("#noteDay").textContent = "Day " + (noteDay + 1);
+    $("#ntoday").hidden = noteDay === clampDay(todayIndex());
+  }
+  function renderEdit() {
+    document.body.classList.toggle("editing", editing);
+    $("#editTab").setAttribute("aria-pressed", String(editing));
+    $("#editTxt").textContent = editing ? "DONE" : "EDIT";
+    $("#editPanel").hidden = !editing;
+    var di = $("#dayIn"); if (di && document.activeElement !== di) di.value = String(clampDay(todayIndex()) + 1);
+  }
+  function renderAll() { renderHead(); renderGrid(); renderCharts(); renderRules(); renderEdit(); setNote(); }
+
+  // ---------- saving ----------
+  var dirty = false, saving = false, timer = null, dbDoc = null;
+  function setStatus(t) { $("#status").textContent = t; }
+  function persist() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    dirty = true;
+    setStatus(dbDoc ? "Saving…" : "Saved on this device");
+    clearTimeout(timer); timer = setTimeout(flush, 600);
+  }
+  function flush() {
+    if (!dbDoc) { dirty = false; return; }
+    if (saving) { timer = setTimeout(flush, 300); return; }
+    saving = true;
+    var snap = JSON.parse(JSON.stringify(state));
+    dbDoc.set(snap).then(function () { setStatus("Saved"); }, function () { setStatus("Could not sync. Your data is kept on this device."); })
+      .then(function () {
+        saving = false;
+        if (JSON.stringify(state) !== JSON.stringify(snap)) timer = setTimeout(flush, 200); else dirty = false;
+      });
+  }
+
+  // ---------- actions ----------
+  function tick(h, d) {
+    var s = state.marks[h];
+    state.marks[h] = s.slice(0, d) + (s.charAt(d) === "1" ? "0" : "1") + s.slice(d + 1);
+    persist(); renderHead(); renderGrid(); renderCharts();
+    var t = document.querySelector('#grid [data-h="' + h + '"][data-d="' + d + '"]');
+    if (t) { try { t.focus({ preventScroll: true }); } catch (e) { t.focus(); } }
+  }
+  var armedKey = null, armTimer = null;
+  function arm(btn, key, armedText) {
+    if (armedKey === key) { clearTimeout(armTimer); armedKey = null; return true; }
+    armedKey = key; var old = btn.innerHTML;
+    btn.classList.add("armed"); btn.textContent = armedText;
+    clearTimeout(armTimer);
+    armTimer = setTimeout(function () { armedKey = null; btn.classList.remove("armed"); btn.innerHTML = old; }, 3500);
+    return false;
+  }
+  function setStartForDay(n) {
+    var t = todayDate(); t.setDate(t.getDate() - (n - 1)); state.start = iso(t);
+    noteDay = clampDay(todayIndex()); persist(); renderAll(); scrollToToday();
+  }
+  function hint(t) { $("#hint").textContent = t; clearTimeout(hint.t); hint.t = setTimeout(function () { $("#hint").textContent = "Select some words, then tap a marker."; }, 2500); }
+
+  // quote box: keep the last selection made inside it
+  var lastRange = null;
+  document.addEventListener("selectionchange", function () {
+    var s = window.getSelection(), q = $("#quote");
+    if (s && s.rangeCount && q.contains(s.anchorNode) && q.contains(s.focusNode)) lastRange = s.getRangeAt(0).cloneRange();
+  });
+  function unwrap(m) { var p = m.parentNode; while (m.firstChild) p.insertBefore(m.firstChild, m); p.removeChild(m); }
+  function mark(c) {
+    var q = $("#quote");
+    if (!lastRange || lastRange.collapsed || !q.contains(lastRange.commonAncestorContainer)) { hint("Select some words first."); return; }
+    var r = lastRange;
+    Array.prototype.slice.call(q.querySelectorAll("mark")).forEach(function (m) { if (r.intersectsNode(m)) unwrap(m); });
+    if (c !== "x") {
+      var m = document.createElement("mark"); m.className = c;
+      m.appendChild(r.extractContents()); r.insertNode(m);
+    }
+    q.normalize();
+    var s = window.getSelection(); s.removeAllRanges(); lastRange = null;
+    saveNote();
+  }
+  function saveNote() {
+    var c = clean($("#quote").innerHTML);
+    if (plainEmpty(c)) delete state.notes[noteDay]; else state.notes[noteDay] = c;
+    persist();
+  }
+  function gotoNote(d) { noteDay = clampDay(d); lastRange = null; setNote(); }
+
+  document.addEventListener("pointerdown", function (e) { if (e.target.closest(".tools button")) e.preventDefault(); });
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-act], #editTab");
+    if (!t) return;
+    if (t.id === "editTab") { editing = !editing; renderAll(); return; }
+    var a = t.getAttribute("data-act"), h = +t.getAttribute("data-h"), i = +t.getAttribute("data-i");
+    if (a === "tick") tick(h, +t.getAttribute("data-d"));
+    else if (a === "mk") mark(t.getAttribute("data-c"));
+    else if (a === "nprev") gotoNote(noteDay - 1);
+    else if (a === "nnext") gotoNote(noteDay + 1);
+    else if (a === "ntoday") gotoNote(todayIndex());
+    else if (a === "rtick") {
+      var r = state.rules[i]; r.done = !r.done;
+      r.date = r.done ? (r.date || iso(new Date())) : "";
+      persist(); renderRules();
+    }
+    else if (a === "delr") { if (arm(t, "r" + i, "Delete?")) { state.rules.splice(i, 1); persist(); renderRules(); } }
+    else if (a === "addr") addRule();
+    else if (a === "addh") {
+      if (H() < MAXH) {
+        state.habits.push("New habit"); state.marks.push(zeros()); persist(); renderGrid(); renderCharts(); renderHead();
+        var ins = document.querySelectorAll("#grid .hin"), last = ins[ins.length - 1]; if (last) { last.focus(); last.select(); }
+      }
+    }
+    else if (a === "delh") {
+      if (H() > 1 && arm(t, "h" + h, "Delete?")) { state.habits.splice(h, 1); state.marks.splice(h, 1); persist(); renderGrid(); renderCharts(); renderHead(); }
+    }
+    else if (a === "setday") { var n = parseInt($("#dayIn").value, 10); if (n >= 1 && n <= N) setStartForDay(n); }
+    else if (a === "day1") setStartForDay(1);
+    else if (a === "clear") {
+      if (arm(t, "clear", "Tap again to clear")) { state.marks = state.habits.map(zeros); persist(); renderHead(); renderGrid(); renderCharts(); t.classList.remove("armed"); t.textContent = "Clear all ticks"; }
+    }
+  });
+  function addRule() {
+    var inp = $("#newRule"), v = inp.value.trim();
+    if (!v) { inp.focus(); return; }
+    state.rules.push({ t: v.slice(0, 120), done: false, date: "" });
+    inp.value = ""; persist(); renderRules(); inp.focus();
+  }
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && e.target.id === "newRule") { e.preventDefault(); addRule(); }
+    else if (e.key === "Enter" && e.target.classList && e.target.classList.contains("rin")) { e.preventDefault(); e.target.blur(); }
+  });
+  document.addEventListener("input", function (e) {
+    var t = e.target;
+    if (t.classList.contains("hin")) { state.habits[+t.getAttribute("data-h")] = t.value.slice(0, 40); persist(); }
+    else if (t.classList.contains("rin")) { state.rules[+t.getAttribute("data-i")].t = t.value.slice(0, 120); persist(); }
+    else if (t.id === "quote") saveNote();
+  });
+  document.addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.classList.contains("rdi")) {
+      var r = state.rules[+t.getAttribute("data-i")];
+      r.date = ISO_RE.test(t.value) ? t.value : ""; r.done = !!r.date;
+      persist(); renderRules();
+    }
+  });
+  document.addEventListener("focusout", function (e) {
+    var t = e.target;
+    if (t.classList && t.classList.contains("hin")) { if (!t.value.trim()) { state.habits[+t.getAttribute("data-h")] = "Habit"; persist(); } renderGrid(); renderCharts(); }
+    else if (t.classList && t.classList.contains("rin")) renderRules();
+  });
+  // paste into the quote box as plain text
+  $("#quote").addEventListener("paste", function (e) {
+    e.preventDefault();
+    var txt = (e.clipboardData || window.clipboardData).getData("text");
+    document.execCommand("insertText", false, txt);
+  });
+
+  renderAll();
+  scrollToToday();
+  setStatus("");
+
+  // ---------- sync across devices ----------
+  (async function () {
+    if (!window.claude || !window.claude.use) { setStatus("Saved on this device"); return; }
+    try {
+      var user = await window.claude.use("user");
+      var db = await window.claude.use("db");
+      var uid = user ? await user.id() : null;
+      if (!db || !uid) { setStatus("Saved on this device"); return; }
+      dbDoc = db.doc("data/users/" + uid + "/tracker");
+      dbDoc.onSnapshot(function (snap) {
+        if (snap.metadata && snap.metadata.hasPendingWrites) return;
+        if (dirty) return;
+        if (snap.exists) {
+          var n = normalize(snap.data());
+          if (n && JSON.stringify(n) !== JSON.stringify(state)) {
+            state = n;
+            try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+            noteDay = clampDay(todayIndex());
+            var ae = document.activeElement;
+            if (!(ae && ae.closest && ae.closest("#quote, .editpanel, #rules input, #grid input"))) { renderAll(); scrollToToday(); }
+          }
+          setStatus("Saved");
+        } else if (hadLocal) { persist(); }
+        else setStatus("");
+      }, function () { dbDoc = null; setStatus("Saved on this device"); });
+    } catch (err) { dbDoc = null; setStatus("Saved on this device"); }
+  })();
+})();
+</script>
+
+<script>
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+}
+</script>
+</body>
+</html>
