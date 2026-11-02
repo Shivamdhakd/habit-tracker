@@ -6,17 +6,16 @@
 <style>[hidden]{display:none!important} html{background:#fff} body{margin:0}</style>
 <title>Habit Tracker</title>
 <meta name="theme-color" content="#111827">
-<meta name="description" content="45-day habit tracker with rules and a quote of the day.">
+<meta name="description" content="45-day habit tracker with rules, journal and a quote of the day.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Habit Tracker">
-
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Barlow+Condensed:wght@700;800&family=Caveat:wght@500;600&display=swap">
 <style>
-/* Layout: header, 1-45 grid, quote notebook on the right (desktop), progress, rules. Plain white UI; the dark yellow/red look lives only inside the quote box. */
+/* Layout: one white column (header, 1-45 grid, progress, rules, journal). The quote notebook is a drawer that slides in from the right edge; its dark yellow/red look is the only themed part. */
 :root {
   --bg: #FFFFFF;
   --surface: #FFFFFF;
@@ -27,6 +26,7 @@
   --accent: #16A34A;
   --on-accent: #FFFFFF;
   --miss: #FDECEC;
+  --cross: #D64545;
   --q-bg: #0B0B0E;
   --q-ink: #F2F2EF;
   --q-muted: #8E8E9A;
@@ -34,6 +34,7 @@
   --q-yellow: #FFD21F;
   --q-on-yellow: #14120A;
   --q-red: #EF3B36;
+  --dw: min(440px, calc(100vw - 48px));
   --f-body: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --f-quote-head: 'Barlow Condensed', 'Arial Narrow', Impact, sans-serif;
   --f-hand: 'Caveat', 'Comic Sans MS', cursive;
@@ -44,44 +45,43 @@ body {
   background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.45;
   padding-block: 18px 40px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(44px, calc(env(safe-area-inset-right, 0px) + 36px));
+  padding-right: max(48px, calc(env(safe-area-inset-right, 0px) + 40px));
 }
-@media (min-width: 960px) { body { padding-right: max(16px, env(safe-area-inset-right, 0px)); } }
+body.jopen { overflow: hidden; }
 button { font: inherit; color: inherit; cursor: pointer; }
-button:focus-visible, input:focus-visible, [contenteditable]:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, [contenteditable]:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
 .label { font-weight: 700; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
 
-.layout { display: grid; gap: 16px; max-width: 1180px; margin: 0 auto; grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: "head" "grid" "note" "prog" "rules"; }
-@media (min-width: 960px) {
-  .layout { grid-template-columns: minmax(0, 1fr) 330px; align-items: start;
-    grid-template-areas: "head head" "grid note" "prog note" "rules note"; }
-}
-.head { grid-area: head; display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.layout { display: grid; gap: 16px; max-width: 1100px; margin: 0 auto; grid-template-columns: minmax(0, 1fr); }
+.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
 .head > div:first-child { min-width: 0; }
 h1 { font-weight: 800; font-size: 32px; line-height: 1.05; margin: 0; letter-spacing: -0.01em; }
-.tag { margin: 4px 0 0; color: var(--muted); font-weight: 500; }
+.tag { margin: 6px 0 0; color: var(--muted); font-weight: 600; font-size: 14px; }
 .push { margin: 6px 0 0; color: var(--ink); font-weight: 600; }
+.doneRow { margin-top: 10px; }
 .daybig { flex: none; text-align: right; line-height: 1; }
 .daybig .lbl { display: block; font-size: 12px; letter-spacing: 0.14em; font-weight: 700; color: var(--muted); margin-bottom: 2px; }
 .daybig .n { font-size: 48px; font-weight: 800; }
 .daybig .of { font-size: 18px; font-weight: 600; color: var(--muted); margin-left: 3px; }
 
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
-.g-area { grid-area: grid; } .p-area { grid-area: prog; } .r-area { grid-area: rules; }
 
 .editpanel { background: var(--surface2); border: 1px dashed #9CA3AF; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
 .editpanel .label { margin-bottom: 8px; color: var(--ink); }
-.erow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.erow { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.erow + .erow { margin-top: 10px; }
 .erow label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .erow input[type="number"] { width: 64px; }
+#history ul { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--muted); }
+#history { margin-top: 12px; }
 .btn { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-weight: 600; font-size: 14px; }
 .btn:hover { border-color: var(--ink); }
 .btn.yel { background: var(--ink); color: #fff; border-color: var(--ink); }
-.btn.armed, .btn.dng { border-color: #D64545; color: #D64545; }
-.btn.armed { background: #D64545; color: #fff; }
-input[type="text"], input[type="number"], input[type="date"] { font: inherit; font-size: 15px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+.btn.armed, .btn.dng { border-color: var(--cross); color: var(--cross); }
+.btn.armed { background: var(--cross); color: #fff; }
+input[type="text"], input[type="number"], input[type="date"], textarea { font: inherit; font-size: 15px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; }
 
 .gridwrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
 table.g { border-collapse: collapse; min-width: 100%; }
@@ -94,6 +94,7 @@ table.g th.d.now { background: var(--ink); color: #fff; }
 table.g td.c { width: 28px; height: 28px; }
 table.g td.c button { width: 100%; height: 28px; border: 0; background: transparent; padding: 0; display: grid; place-items: center; }
 table.g td.c.miss { background: var(--miss); }
+table.g td.c.miss button::after { content: "\00D7"; color: var(--cross); font-size: 22px; font-weight: 700; line-height: 1; }
 table.g td.c.now { box-shadow: inset 0 0 0 1.5px var(--ink); }
 table.g td.c.on { background: var(--accent); }
 table.g td.c.on button::after { content: ""; width: 6px; height: 12px; border: solid var(--on-accent); border-width: 0 3px 3px 0; transform: translateY(-1px) rotate(45deg); }
@@ -101,10 +102,11 @@ table.g td.ft { font-size: 11px; color: var(--muted); background: var(--surface2
 table.g td.hn.foot { font-size: 11px; letter-spacing: 0.09em; background: var(--surface2); }
 .hedit { display: flex; gap: 6px; align-items: center; }
 .hedit input { flex: 1; min-width: 0; padding: 6px 8px; font-size: 14px; }
-.x { flex: none; width: 30px; height: 30px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; color: #D64545; font-weight: 700; line-height: 1; font-size: 13px; padding: 0; }
-.x.armed { background: #D64545; color: #fff; border-color: #D64545; width: auto; padding: 0 8px; }
+.x { flex: none; width: 30px; height: 30px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; color: var(--cross); font-weight: 700; line-height: 1; font-size: 13px; padding: 0; }
+.x.armed { background: var(--cross); color: #fff; border-color: var(--cross); width: auto; padding: 0 8px; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 12.5px; color: var(--muted); align-items: center; }
-.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; border: 1px solid var(--line); }
+.legend i { display: inline-block; width: 13px; height: 13px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+.legend i.x { background: var(--miss); color: var(--cross); text-align: center; font-style: normal; font-weight: 700; font-size: 13px; line-height: 11px; }
 .addhabit { margin-top: 10px; }
 
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
@@ -112,7 +114,6 @@ table.g td.hn.foot { font-size: 11px; letter-spacing: 0.09em; background: var(--
 .stat b { display: block; font-size: 26px; line-height: 1.1; font-weight: 800; }
 .stat:last-child b { color: var(--accent); }
 .stat span { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-@media (max-width: 440px) { .stats { grid-template-columns: repeat(2, 1fr); } h1 { font-size: 26px; } .daybig .n { font-size: 40px; } }
 .chartblock + .chartblock { margin-top: 22px; }
 .ylab { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
 .bars { display: grid; grid-template-columns: repeat(45, 1fr); gap: 2px; align-items: end; height: 120px;
@@ -145,98 +146,126 @@ table.g td.hn.foot { font-size: 11px; letter-spacing: 0.09em; background: var(--
 .rdate { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
 .rdate input { font-size: 14px; padding: 6px 8px; letter-spacing: 0; text-transform: none; font-weight: 400; }
 .rside { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; justify-content: flex-end; }
-@media (max-width: 520px) { .rule { grid-template-columns: auto minmax(0, 1fr); } .rside { grid-column: 1 / -1; justify-content: flex-start; padding-left: 46px; } }
 .empty { color: var(--muted); margin: 4px 0; }
 .addrule { display: flex; gap: 8px; margin-top: 12px; }
 .addrule input { flex: 1; }
 
-/* quote notebook: the only themed part of the page */
-.note { grid-area: note; align-self: stretch; }
-.noteinner { position: sticky; top: 16px; }
-.paper { background: var(--q-bg); color: var(--q-ink); border-radius: 12px; padding: 14px 14px 14px 14px; }
+.jsub { margin: 0 0 12px; color: var(--muted); }
+.jrow { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+
+/* quote drawer */
+.qdrawer { position: fixed; top: 0; right: 0; bottom: 0; width: var(--dw); z-index: 30; display: flex; padding: 14px 48px 14px 0;
+  transform: translateX(100%); visibility: hidden; transition: transform .38s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .38s; }
+.qdrawer.open { transform: none; visibility: visible; transition: transform .38s cubic-bezier(.2, .8, .2, 1), visibility 0s; }
+.paper { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--q-bg); color: var(--q-ink); border-radius: 12px; padding: 14px; overflow-y: auto; box-shadow: 0 14px 44px rgba(0, 0, 0, .38); }
 .phead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-.phead .ttl { font-family: var(--f-quote-head); font-weight: 800; font-size: 22px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; color: var(--q-yellow); }
-.pager { display: flex; align-items: center; gap: 4px; }
-.pager button { width: 32px; height: 32px; border: 1px solid var(--q-line); background: transparent; color: var(--q-ink); border-radius: 6px; font-weight: 700; padding: 0; }
-.pager .dl { min-width: 56px; text-align: center; font-family: var(--f-quote-head); font-weight: 700; font-size: 18px; letter-spacing: 0.06em; }
-.tools { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
+.phead .ttl { font-family: var(--f-quote-head); font-weight: 800; font-size: 24px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1; color: var(--q-yellow); }
+.qclose { width: 34px; height: 34px; border: 1px solid var(--q-line); background: transparent; color: var(--q-ink); border-radius: 6px; font-size: 20px; line-height: 1; padding: 0; }
+.prow { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.prow button { flex: none; width: 34px; height: 34px; border: 1px solid var(--q-line); background: transparent; color: var(--q-ink); border-radius: 6px; font-weight: 700; padding: 0; }
+.prow .mid { flex: 1; text-align: center; min-width: 0; line-height: 1.1; }
+.prow .dl { display: block; font-family: var(--f-quote-head); font-weight: 700; font-size: 20px; letter-spacing: 0.06em; }
+.prow .dd { display: block; font-size: 12px; color: var(--q-muted); }
+.prow .today { width: auto; padding: 0 10px; font-size: 13px; font-weight: 600; }
+.tools { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .tools button { border: 1px solid var(--q-line); background: transparent; color: var(--q-ink); border-radius: 6px; padding: 5px 10px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
 .tools .sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
 .tools .sw.y { background: var(--q-yellow); } .tools .sw.r { background: var(--q-red); } .tools .sw.x { border: 1px solid var(--q-ink); }
-.tools .today { margin-left: auto; }
 .paper button:focus-visible, .paper [contenteditable]:focus-visible { outline-color: var(--q-yellow); }
-.quote { min-height: 300px; font-family: var(--f-hand); font-size: 25px; line-height: 32px; color: var(--q-ink); outline: none; padding: 0 4px 0 18px; word-break: break-word;
+.quote { flex: 1; min-height: 260px; font-family: var(--f-hand); font-size: 26px; line-height: 32px; color: var(--q-ink); outline: none; padding: 0 4px 0 18px; word-break: break-word;
   background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--q-line) 31px, var(--q-line) 32px);
   background-attachment: local; border-left: 2px solid var(--q-red); margin-left: 4px; }
-.quote:empty::before { content: "Write today's line here. Select words to mark them."; color: var(--q-muted); pointer-events: none; }
+.quote:empty::before { content: attr(data-ph); color: #CFCFD8; pointer-events: none; }
 .quote mark { padding: 0 2px; border-radius: 3px; }
 .quote mark.y { background: var(--q-yellow); color: var(--q-on-yellow); }
 .quote mark.r { background: var(--q-red); color: #fff; }
-.hint { min-height: 18px; margin: 8px 0 0; font-size: 12.5px; color: var(--q-muted); }
+.quote.slide-next { animation: qnext .3s ease both; }
+.quote.slide-prev { animation: qprev .3s ease both; }
+@keyframes qnext { from { opacity: 0; transform: translateX(34px); } to { opacity: 1; transform: none; } }
+@keyframes qprev { from { opacity: 0; transform: translateX(-34px); } to { opacity: 1; transform: none; } }
+.hint { min-height: 18px; margin: 10px 0 0; font-size: 12.5px; color: var(--q-muted); }
 
-.edittab { position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 20; writing-mode: vertical-rl; text-orientation: mixed;
-  background: var(--ink); color: #fff; border: 0; border-radius: 8px 0 0 8px; padding: 18px 9px; padding-right: calc(9px + env(safe-area-inset-right, 0px));
-  font-weight: 700; font-size: 14px; letter-spacing: 0.22em; box-shadow: -1px 0 6px rgba(17, 24, 39, .18); }
+.qtab, .edittab { position: fixed; right: 0; z-index: 40; writing-mode: vertical-rl; text-orientation: mixed; border: 0; border-radius: 8px 0 0 8px; font-weight: 700; letter-spacing: 0.22em; box-shadow: -1px 0 6px rgba(17, 24, 39, .22); }
+.qtab { top: 20vh; background: var(--q-bg); color: var(--q-yellow); padding: 16px 9px; padding-right: calc(9px + env(safe-area-inset-right, 0px)); font-family: var(--f-quote-head); font-size: 17px; transition: right .38s cubic-bezier(.2, .8, .2, 1); }
+body.qopen .qtab { right: var(--dw); }
+.edittab { top: 50%; transform: translateY(-50%); background: var(--ink); color: #fff; padding: 18px 9px; padding-right: calc(9px + env(safe-area-inset-right, 0px)); font-size: 14px; }
 body.editing .edittab { background: var(--accent); }
-#status { text-align: center; color: var(--muted); font-size: 12.5px; margin: 14px 0 0; min-height: 18px; }
-@media (prefers-reduced-motion: no-preference) { .btn, .x, td.c, .rtick { transition: background-color .12s, border-color .12s; } }
-</style>
 
+/* journal page */
+.jview { position: fixed; inset: 0; z-index: 60; background: var(--bg); overflow-y: auto; padding-block: 16px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.jin { max-width: 820px; margin: 0 auto; }
+.jtop { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.jtop h2 { margin: 0; font-size: 26px; font-weight: 800; }
+.jrounds { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.jrounds:empty { display: none; }
+.jrounds button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 600; }
+.jrounds button.sel { background: var(--ink); color: #fff; border-color: var(--ink); }
+.jchips { position: relative; display: flex; gap: 6px; overflow-x: auto; padding: 12px 2px; margin: 0 -2px; }
+.jchip { flex: none; min-width: 66px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 10px; font-weight: 600; font-size: 14px; position: relative; }
+.jchip.sel { background: var(--ink); color: #fff; border-color: var(--ink); }
+.jchip.has::after { content: ""; position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+#jhead { margin: 6px 0 4px; font-size: 20px; }
+.jarea { display: block; width: 100%; min-height: 52vh; resize: vertical; line-height: 1.65; font-size: 16px; padding: 14px; border-radius: 10px; }
+.jfoot { display: flex; justify-content: space-between; gap: 12px; margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
+
+#status { text-align: center; color: var(--muted); font-size: 12.5px; margin: 14px 0 0; min-height: 18px; }
+
+@media (max-width: 700px) {
+  .qdrawer { padding-right: 0; }
+  body.qopen .edittab { display: none; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  h1 { font-size: 26px; }
+  .daybig .n { font-size: 40px; }
+  .rule { grid-template-columns: auto minmax(0, 1fr); }
+  .rside { grid-column: 1 / -1; justify-content: flex-start; padding-left: 46px; }
+  .hrow { grid-template-columns: minmax(84px, 112px) 1fr 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qdrawer, .qtab, .quote.slide-next, .quote.slide-prev { transition: none !important; animation: none !important; }
+}
+@media (prefers-reduced-motion: no-preference) { .btn, .x, td.c, .rtick, .jchip { transition: background-color .12s, border-color .12s; } }
+</style>
 </head>
 <body>
 <div class="layout">
   <header class="head">
     <div>
       <h1>Habit Tracker</h1>
-      <p class="tag">45-day plan</p>
+      <p class="tag" id="startInfo"></p>
       <p class="push" id="push"></p>
+      <div class="doneRow" id="doneRow" hidden><button class="btn yel" type="button" data-act="restart">Start a new 45 days</button></div>
     </div>
     <div class="daybig" aria-label="Current day"><span class="lbl">DAY</span><span class="n num" id="dayN">1</span><span class="of">/ 45</span></div>
   </header>
 
-  <section class="card g-area" aria-label="45 day tracker">
+  <section class="card" aria-label="45 day tracker">
     <div class="editpanel" id="editPanel" hidden>
       <p class="label">Edit mode</p>
       <div class="erow">
+        <label for="startIn">Started on <input type="date" id="startIn"></label>
         <label for="dayIn">Today is day <input type="number" id="dayIn" min="1" max="45"></label>
         <button class="btn" type="button" data-act="setday">Set</button>
         <button class="btn" type="button" data-act="day1">Day 1 = today</button>
-        <button class="btn dng" type="button" data-act="clear" id="clearBtn">Clear all ticks</button>
       </div>
+      <div class="erow">
+        <label for="showQ"><input type="checkbox" id="showQ"> Show the quote when the app opens</label>
+      </div>
+      <div class="erow">
+        <button class="btn dng" type="button" data-act="clear" id="clearBtn">Clear all ticks</button>
+        <button class="btn dng" type="button" data-act="restart" id="restartBtn">Restart 45 days</button>
+      </div>
+      <div id="history"></div>
     </div>
     <div class="gridwrap" id="gridWrap"><table class="g" id="grid"></table></div>
     <div class="addhabit" id="addHabit" hidden><button class="btn yel" type="button" data-act="addh">+ Add habit</button></div>
     <div class="legend">
-      <span><i style="background:var(--yellow)"></i>Done</span>
-      <span><i style="background:rgba(239,59,54,.35)"></i>Missed</span>
-      <span><i style="background:var(--red)"></i>Today</span>
+      <span><i style="background:var(--accent)"></i>Done</span>
+      <span><i class="x">&times;</i>Missed</span>
+      <span><i style="background:var(--ink)"></i>Today</span>
     </div>
   </section>
 
-  <aside class="note" aria-label="Quote of the day">
-    <div class="noteinner">
-      <div class="paper">
-        <div class="phead">
-          <span class="ttl">Quote of the day</span>
-          <div class="pager">
-            <button type="button" data-act="nprev" aria-label="Previous day">&lsaquo;</button>
-            <span class="dl num" id="noteDay">Day 1</span>
-            <button type="button" data-act="nnext" aria-label="Next day">&rsaquo;</button>
-          </div>
-        </div>
-        <div class="tools">
-          <button type="button" data-act="mk" data-c="y"><i class="sw y"></i>Yellow</button>
-          <button type="button" data-act="mk" data-c="r"><i class="sw r"></i>Red</button>
-          <button type="button" data-act="mk" data-c="x"><i class="sw x"></i>Erase</button>
-          <button type="button" class="today" data-act="ntoday" id="ntoday" hidden>Today</button>
-        </div>
-        <div class="quote" id="quote" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Quote of the day" spellcheck="false"></div>
-        <p class="hint" id="hint">Select some words, then tap a marker.</p>
-      </div>
-    </div>
-  </aside>
-
-  <section class="card p-area" aria-label="Progress">
+  <section class="card" aria-label="Progress">
     <p class="label">Progress</p>
     <div class="stats" id="stats"></div>
     <div class="chartblock">
@@ -255,7 +284,7 @@ body.editing .edittab { background: var(--accent); }
     </div>
   </section>
 
-  <section class="card r-area" aria-label="Rules and penalties">
+  <section class="card" aria-label="Rules and penalties">
     <p class="label">The deal: rules and penalties</p>
     <div id="rules"></div>
     <div class="addrule" id="addRule" hidden>
@@ -263,14 +292,78 @@ body.editing .edittab { background: var(--accent); }
       <button class="btn yel" type="button" data-act="addr">Add rule</button>
     </div>
   </section>
+
+  <section class="card" aria-label="Journal">
+    <p class="label">Journal</p>
+    <p class="jsub">One page for each of the 45 days. Write how the day went.</p>
+    <div class="jrow">
+      <button class="btn yel" type="button" data-act="openj">Open journal</button>
+      <span class="muted" id="jcount"></span>
+    </div>
+  </section>
 </div>
 <p id="status" role="status"></p>
+
+<button class="qtab" id="qtab" type="button" aria-expanded="false" aria-controls="qdrawer" data-act="qtoggle">QUOTE</button>
+<aside class="qdrawer" id="qdrawer" aria-label="Quote of the day">
+  <div class="paper">
+    <div class="phead">
+      <span class="ttl">Quote of the day</span>
+      <button type="button" class="qclose" data-act="qclose" aria-label="Hide quote">&times;</button>
+    </div>
+    <div class="prow">
+      <button type="button" data-act="nprev" aria-label="Previous day">&lsaquo;</button>
+      <span class="mid"><span class="dl num" id="noteDay">Day 1</span><span class="dd" id="noteDate"></span></span>
+      <button type="button" data-act="nnext" aria-label="Next day">&rsaquo;</button>
+      <button type="button" class="today" data-act="ntoday" id="ntoday" hidden>Today</button>
+    </div>
+    <div class="tools">
+      <button type="button" data-act="mk" data-c="y"><i class="sw y"></i>Yellow</button>
+      <button type="button" data-act="mk" data-c="r"><i class="sw r"></i>Red</button>
+      <button type="button" data-act="mk" data-c="x"><i class="sw x"></i>Erase</button>
+    </div>
+    <div class="quote" id="quote" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Quote of the day" spellcheck="false"></div>
+    <p class="hint" id="hint">Tap the page to write your own line. Select words, then tap a marker.</p>
+  </div>
+</aside>
+
+<div class="jview" id="jview" role="dialog" aria-modal="true" aria-label="Journal" hidden>
+  <div class="jin">
+    <div class="jtop">
+      <h2>Journal</h2>
+      <button class="btn" type="button" data-act="closej">Close</button>
+    </div>
+    <div class="jrounds" id="jrounds"></div>
+    <div class="jchips" id="jchips"></div>
+    <h3 id="jhead"></h3>
+    <p class="jsub">How was today? What did you skip and why? One win, and one thing to fix tomorrow.</p>
+    <textarea id="jtext" class="jarea" maxlength="5000" placeholder="Write about your day here…" aria-label="Journal entry"></textarea>
+    <p class="jfoot"><span id="jnote"></span><span>Saved automatically</span></p>
+  </div>
+</div>
+
 <button class="edittab" id="editTab" type="button" aria-pressed="false" aria-label="Edit mode"><span id="editTxt">EDIT</span></button>
 
 <script>
 (function () {
-  var N = 45, MAXH = 12;
+  var N = 45, MAXH = 12, MAXHIST = 12, JMAX = 5000;
   var DEF = ["Wake up 6 AM", "Meditation", "Stretching", "School Work", "Reading / Learning", "Exercise", "Coding", "Sleep 10 PM"];
+  var FALLBACK = [
+    "Show up today. That is the whole plan.",
+    "Tired is not a reason. Start anyway.",
+    "Your streak is a promise you keep to yourself.",
+    "Small ticks, every day, add up to a different person.",
+    "Do it before you feel like it.",
+    "Skip the mood. Keep the habit.",
+    "Today's effort is tomorrow's easy.",
+    "Be the person your future self thanks.",
+    "One tick at a time. Do not break the chain.",
+    "Discipline is a favour to the person you will be.",
+    "No negotiating with the alarm.",
+    "Finish the day you started."
+  ];
+  var WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   var KEY = "habit-tracker-45-v2";
   var ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -278,11 +371,13 @@ body.editing .edittab { background: var(--accent); }
   function pad(n) { return String(n).padStart(2, "0"); }
   function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
   function parseISO(s) { var p = s.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+  function fmtDate(d) { return WD[d.getDay()] + " " + d.getDate() + " " + MON[d.getMonth()] + " " + d.getFullYear(); }
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function zeros() { return new Array(N + 1).join("0"); }
   function pct(x) { return Math.round(x * 100); }
 
-  // keep only text, line breaks and the two highlighter marks
+  // quote notes keep only text, line breaks and the two highlighter marks
   function cleanNode(n) {
     var s = "";
     n.childNodes.forEach(function (c) {
@@ -304,9 +399,15 @@ body.editing .edittab { background: var(--accent); }
   function plainEmpty(html) { var t = document.createElement("div"); t.innerHTML = html; return !t.textContent.trim(); }
 
   function blankRules(n) { var a = []; for (var i = 0; i < n; i++) a.push({ t: "", done: false, date: "" }); return a; }
+  function cleanJournal(j) {
+    var out = {};
+    if (j && typeof j === "object") for (var i = 0; i < N; i++) { var v = j[i]; if (typeof v === "string" && v.trim()) out[i] = v.slice(0, JMAX); }
+    return out;
+  }
   function defaults() {
-    return { v: 2, start: iso(new Date()), habits: DEF.slice(), marks: DEF.map(zeros),
-      rules: [{ t: "5 hour screentime = 100 pushups", done: false, date: "" }].concat(blankRules(4)), notes: {} };
+    return { v: 3, start: iso(new Date()), habits: DEF.slice(), marks: DEF.map(zeros),
+      rules: [{ t: "5 hour screentime = 100 pushups", done: false, date: "" }].concat(blankRules(4)),
+      notes: {}, journal: {}, showQ: true, history: [] };
   }
   function normalize(d) {
     if (!d || typeof d.start !== "string" || !ISO_RE.test(d.start)) return null;
@@ -318,8 +419,7 @@ body.editing .edittab { background: var(--accent); }
       r = r || {};
       return { t: String(r.t || "").slice(0, 120), done: !!r.done, date: ISO_RE.test(r.date || "") ? r.date : "" };
     }) : [];
-    if (d.v !== 2 && out.rules.length <= 1) out.rules = out.rules.concat(blankRules(4));
-    out.v = 2;
+    if (!d.v && out.rules.length <= 1) out.rules = out.rules.concat(blankRules(4));
     out.notes = {};
     if (d.notes && typeof d.notes === "object") {
       for (var i = 0; i < N; i++) {
@@ -327,6 +427,13 @@ body.editing .edittab { background: var(--accent); }
         if (typeof v === "string") { var c = clean(v); if (!plainEmpty(c)) out.notes[i] = c; }
       }
     }
+    out.journal = cleanJournal(d.journal);
+    out.showQ = d.showQ !== false;
+    out.history = Array.isArray(d.history) ? d.history.slice(-MAXHIST).map(function (h) {
+      h = h || {};
+      return { start: ISO_RE.test(h.start || "") ? h.start : "", done: +h.done || 0, goal: +h.goal || 0, journal: cleanJournal(h.journal) };
+    }) : [];
+    out.v = 3;
     return out;
   }
 
@@ -340,33 +447,38 @@ body.editing .edittab { background: var(--accent); }
   })();
 
   function todayDate() { var t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
-  function todayIndex() { return Math.round((todayDate() - parseISO(state.start)) / 864e5); }
+  function startDate() { return parseISO(state.start); }
+  function todayIndex() { return Math.round((todayDate() - startDate()) / 864e5); }
   function clampDay(i) { return Math.min(Math.max(i, 0), N - 1); }
   var noteDay = clampDay(todayIndex());
+  var jDay = 0, jRound = -1;
   var editing = false;
   function H() { return state.habits.length; }
   function isOn(h, d) { return state.marks[h].charAt(d) === "1"; }
   function habitDone(h) { return (state.marks[h].match(/1/g) || []).length; }
   function dayDone(d) { var c = 0; for (var h = 0; h < H(); h++) if (isOn(h, d)) c++; return c; }
+  function totalDone() { var t = 0; for (var h = 0; h < H(); h++) t += habitDone(h); return t; }
   function streak(h) {
     var ti = todayIndex(); if (ti < 0) return 0;
     var i = Math.min(ti, N - 1); if (!isOn(h, i)) i--;
     var c = 0; while (i >= 0 && isOn(h, i)) { c++; i--; }
     return c;
   }
-  var CHECK = "";
 
   // ---------- rendering ----------
   function renderHead() {
-    var ti = todayIndex(), txt;
+    var ti = todayIndex(), s = startDate(), e = addDays(s, N - 1), round = state.history.length + 1;
+    $("#startInfo").textContent = (round > 1 ? "Round " + round + "  ·  " : "") + (ti < 0 ? "Starts " : "Started ") + fmtDate(s) + "  ·  Ends " + fmtDate(e);
+    var txt;
     if (ti < 0) { $("#dayN").textContent = "0"; txt = "Starts in " + (-ti) + (ti === -1 ? " day." : " days."); }
-    else if (ti >= N) { $("#dayN").textContent = String(N); txt = "45 days done. You kept the promise."; }
+    else if (ti >= N) { $("#dayN").textContent = String(N); txt = "45 days complete. You ticked " + totalDone() + " of " + (H() * N) + "."; }
     else {
       $("#dayN").textContent = String(ti + 1);
       var left = H() - dayDone(ti);
       txt = left === 0 ? "All done today. Do the same tomorrow." : left + (left === 1 ? " habit" : " habits") + " left today. No negotiating.";
     }
     $("#push").textContent = txt;
+    $("#doneRow").hidden = !(ti >= N);
   }
 
   function renderGrid() {
@@ -381,7 +493,7 @@ body.editing .edittab { background: var(--accent); }
       for (var c = 0; c < N; c++) {
         var on = isOn(h, c), miss = !on && c < ti;
         g += '<td class="c' + (on ? " on" : "") + (miss ? " miss" : "") + (c === ti ? " now" : "") + '"><button type="button" data-act="tick" data-h="' + h + '" data-d="' + c +
-          '" aria-pressed="' + on + '" aria-label="' + esc(state.habits[h]) + ", day " + (c + 1) + '"></button></td>';
+          '" aria-pressed="' + on + '" aria-label="' + esc(state.habits[h]) + ", day " + (c + 1) + (miss ? ", missed" : "") + '"></button></td>';
       }
       g += "</tr>";
     }
@@ -398,8 +510,7 @@ body.editing .edittab { background: var(--accent); }
   }
 
   function renderCharts() {
-    var goal = H() * N, done = 0, ti = todayIndex();
-    for (var h = 0; h < H(); h++) done += habitDone(h);
+    var goal = H() * N, done = totalDone(), ti = todayIndex();
     $("#stats").innerHTML =
       '<div class="stat"><b class="num">' + goal + "</b><span>Goal</span></div>" +
       '<div class="stat"><b class="num">' + done + "</b><span>Done</span></div>" +
@@ -445,20 +556,87 @@ body.editing .edittab { background: var(--accent); }
     $("#addRule").hidden = !editing;
   }
 
-  function setNote() {
-    var q = $("#quote");
-    q.innerHTML = state.notes[noteDay] ? clean(state.notes[noteDay]) : "";
-    $("#noteDay").textContent = "Day " + (noteDay + 1);
-    $("#ntoday").hidden = noteDay === clampDay(todayIndex());
-  }
   function renderEdit() {
     document.body.classList.toggle("editing", editing);
     $("#editTab").setAttribute("aria-pressed", String(editing));
     $("#editTxt").textContent = editing ? "DONE" : "EDIT";
     $("#editPanel").hidden = !editing;
-    var di = $("#dayIn"); if (di && document.activeElement !== di) di.value = String(clampDay(todayIndex()) + 1);
+    $("#startIn").value = state.start;
+    var di = $("#dayIn"); if (document.activeElement !== di) di.value = String(clampDay(todayIndex()) + 1);
+    $("#showQ").checked = !!state.showQ;
+    var h = "";
+    state.history.forEach(function (x, i) {
+      h += "<li>Round " + (i + 1) + ": " + x.done + " of " + x.goal + " ticks (" + pct(x.goal ? x.done / x.goal : 0) + "%)" + (x.start ? ", started " + fmtDate(parseISO(x.start)) : "") + "</li>";
+    });
+    $("#history").innerHTML = h ? '<p class="label">Past rounds</p><ul>' + h + "</ul>" : "";
   }
-  function renderAll() { renderHead(); renderGrid(); renderCharts(); renderRules(); renderEdit(); setNote(); }
+  function renderJCount() {
+    var n = Object.keys(state.journal).length;
+    $("#jcount").textContent = n + " of " + N + " days written";
+  }
+  function renderAll() { renderHead(); renderGrid(); renderCharts(); renderRules(); renderEdit(); renderJCount(); }
+
+  // ---------- quote drawer ----------
+  function setNote(dir) {
+    var q = $("#quote");
+    q.innerHTML = state.notes[noteDay] ? clean(state.notes[noteDay]) : "";
+    q.setAttribute("data-ph", FALLBACK[noteDay % FALLBACK.length]);
+    $("#noteDay").textContent = "Day " + (noteDay + 1);
+    $("#noteDate").textContent = fmtDate(addDays(startDate(), noteDay));
+    $("#ntoday").hidden = noteDay === clampDay(todayIndex());
+    if (dir) { q.classList.remove("slide-next", "slide-prev"); void q.offsetWidth; q.classList.add(dir > 0 ? "slide-next" : "slide-prev"); }
+  }
+  function setQ(open) {
+    var d = $("#qdrawer");
+    d.classList.toggle("open", open);
+    d.inert = !open;
+    document.body.classList.toggle("qopen", open);
+    $("#qtab").setAttribute("aria-expanded", String(open));
+  }
+  function gotoNote(d, dir) { var n = clampDay(d); if (n === noteDay) return; noteDay = n; lastRange = null; setNote(dir); }
+  function saveNote() {
+    var c = clean($("#quote").innerHTML);
+    if (plainEmpty(c)) delete state.notes[noteDay]; else state.notes[noteDay] = c;
+    persist();
+  }
+  var lastRange = null;
+  document.addEventListener("selectionchange", function () {
+    var s = window.getSelection(), q = $("#quote");
+    if (s && s.rangeCount && q.contains(s.anchorNode) && q.contains(s.focusNode)) lastRange = s.getRangeAt(0).cloneRange();
+  });
+  function unwrap(m) { var p = m.parentNode; while (m.firstChild) p.insertBefore(m.firstChild, m); p.removeChild(m); }
+  function hint(t) { var el = $("#hint"), d = "Tap the page to write your own line. Select words, then tap a marker."; el.textContent = t; clearTimeout(hint.t); hint.t = setTimeout(function () { el.textContent = d; }, 2500); }
+  function mark(c) {
+    var q = $("#quote");
+    if (!lastRange || lastRange.collapsed || !q.contains(lastRange.commonAncestorContainer)) { hint("Select some words first."); return; }
+    var r = lastRange;
+    Array.prototype.slice.call(q.querySelectorAll("mark")).forEach(function (m) { if (r.intersectsNode(m)) unwrap(m); });
+    if (c !== "x") { var m = document.createElement("mark"); m.className = c; m.appendChild(r.extractContents()); r.insertNode(m); }
+    q.normalize();
+    window.getSelection().removeAllRanges(); lastRange = null;
+    saveNote();
+  }
+
+  // ---------- journal ----------
+  function jData() { return jRound < 0 ? state.journal : ((state.history[jRound] || {}).journal || {}); }
+  function renderJ() {
+    var data = jData(), ro = jRound >= 0, r = "", c = "";
+    if (state.history.length) {
+      r += '<button type="button" class="' + (jRound < 0 ? "sel" : "") + '" data-act="jround" data-r="-1">This round</button>';
+      state.history.forEach(function (h, i) { r += '<button type="button" class="' + (jRound === i ? "sel" : "") + '" data-act="jround" data-r="' + i + '">Round ' + (i + 1) + "</button>"; });
+    }
+    $("#jrounds").innerHTML = r;
+    for (var d = 0; d < N; d++) c += '<button type="button" class="jchip' + (d === jDay ? " sel" : "") + (data[d] ? " has" : "") + '" data-act="jday" data-d="' + d + '">Day ' + (d + 1) + "</button>";
+    $("#jchips").innerHTML = c;
+    var base = jRound < 0 ? startDate() : ((state.history[jRound] || {}).start ? parseISO(state.history[jRound].start) : null);
+    $("#jhead").textContent = "Day " + (jDay + 1) + (base ? "  ·  " + fmtDate(addDays(base, jDay)) : "");
+    var t = $("#jtext"); t.value = data[jDay] || ""; t.readOnly = ro;
+    $("#jnote").textContent = ro ? "Old round, read only." : "";
+    var sel = $("#jchips .sel"), box = $("#jchips");
+    if (sel) box.scrollLeft = sel.offsetLeft - (box.clientWidth - sel.offsetWidth) / 2;
+  }
+  function openJ() { jRound = -1; jDay = clampDay(todayIndex()); $("#jview").hidden = false; document.body.classList.add("jopen"); renderJ(); $("#jview").scrollTop = 0; }
+  function closeJ() { $("#jview").hidden = true; document.body.classList.remove("jopen"); renderJCount(); }
 
   // ---------- saving ----------
   var dirty = false, saving = false, timer = null, dbDoc = null;
@@ -482,6 +660,15 @@ body.editing .edittab { background: var(--accent); }
   }
 
   // ---------- actions ----------
+  var armed = null;
+  function disarm() { if (armed) { clearTimeout(armed.timer); armed.btn.classList.remove("armed"); armed.btn.innerHTML = armed.old; armed = null; } }
+  function arm(btn, key, text) {
+    if (armed && armed.key === key) { disarm(); return true; }
+    disarm();
+    armed = { btn: btn, key: key, old: btn.innerHTML, timer: setTimeout(disarm, 3500) };
+    btn.classList.add("armed"); btn.textContent = text;
+    return false;
+  }
   function tick(h, d) {
     var s = state.marks[h];
     state.marks[h] = s.slice(0, d) + (s.charAt(d) === "1" ? "0" : "1") + s.slice(d + 1);
@@ -489,64 +676,43 @@ body.editing .edittab { background: var(--accent); }
     var t = document.querySelector('#grid [data-h="' + h + '"][data-d="' + d + '"]');
     if (t) { try { t.focus({ preventScroll: true }); } catch (e) { t.focus(); } }
   }
-  var armedKey = null, armTimer = null;
-  function arm(btn, key, armedText) {
-    if (armedKey === key) { clearTimeout(armTimer); armedKey = null; return true; }
-    armedKey = key; var old = btn.innerHTML;
-    btn.classList.add("armed"); btn.textContent = armedText;
-    clearTimeout(armTimer);
-    armTimer = setTimeout(function () { armedKey = null; btn.classList.remove("armed"); btn.innerHTML = old; }, 3500);
-    return false;
+  function setStart(iso0) {
+    state.start = iso0; noteDay = clampDay(todayIndex());
+    persist(); renderAll(); setNote(); scrollToToday();
   }
-  function setStartForDay(n) {
-    var t = todayDate(); t.setDate(t.getDate() - (n - 1)); state.start = iso(t);
-    noteDay = clampDay(todayIndex()); persist(); renderAll(); scrollToToday();
+  function setStartForDay(n) { var t = todayDate(); t.setDate(t.getDate() - (n - 1)); setStart(iso(t)); }
+  function restart() {
+    state.history.push({ start: state.start, done: totalDone(), goal: H() * N, journal: state.journal });
+    state.history = state.history.slice(-MAXHIST);
+    state.start = iso(todayDate());
+    state.marks = state.habits.map(zeros);
+    state.rules.forEach(function (r) { r.done = false; r.date = ""; });
+    state.journal = {};
+    noteDay = 0;
+    persist(); renderAll(); setNote();
+    window.scrollTo(0, 0);
   }
-  function hint(t) { $("#hint").textContent = t; clearTimeout(hint.t); hint.t = setTimeout(function () { $("#hint").textContent = "Select some words, then tap a marker."; }, 2500); }
-
-  // quote box: keep the last selection made inside it
-  var lastRange = null;
-  document.addEventListener("selectionchange", function () {
-    var s = window.getSelection(), q = $("#quote");
-    if (s && s.rangeCount && q.contains(s.anchorNode) && q.contains(s.focusNode)) lastRange = s.getRangeAt(0).cloneRange();
-  });
-  function unwrap(m) { var p = m.parentNode; while (m.firstChild) p.insertBefore(m.firstChild, m); p.removeChild(m); }
-  function mark(c) {
-    var q = $("#quote");
-    if (!lastRange || lastRange.collapsed || !q.contains(lastRange.commonAncestorContainer)) { hint("Select some words first."); return; }
-    var r = lastRange;
-    Array.prototype.slice.call(q.querySelectorAll("mark")).forEach(function (m) { if (r.intersectsNode(m)) unwrap(m); });
-    if (c !== "x") {
-      var m = document.createElement("mark"); m.className = c;
-      m.appendChild(r.extractContents()); r.insertNode(m);
-    }
-    q.normalize();
-    var s = window.getSelection(); s.removeAllRanges(); lastRange = null;
-    saveNote();
+  function addRule() {
+    var inp = $("#newRule"), v = inp.value.trim();
+    if (!v) { inp.focus(); return; }
+    state.rules.push({ t: v.slice(0, 120), done: false, date: "" });
+    inp.value = ""; persist(); renderRules(); inp.focus();
   }
-  function saveNote() {
-    var c = clean($("#quote").innerHTML);
-    if (plainEmpty(c)) delete state.notes[noteDay]; else state.notes[noteDay] = c;
-    persist();
-  }
-  function gotoNote(d) { noteDay = clampDay(d); lastRange = null; setNote(); }
 
   document.addEventListener("pointerdown", function (e) { if (e.target.closest(".tools button")) e.preventDefault(); });
   document.addEventListener("click", function (e) {
     var t = e.target.closest("[data-act], #editTab");
     if (!t) return;
-    if (t.id === "editTab") { editing = !editing; renderAll(); return; }
+    if (t.id === "editTab") { editing = !editing; disarm(); renderAll(); return; }
     var a = t.getAttribute("data-act"), h = +t.getAttribute("data-h"), i = +t.getAttribute("data-i");
     if (a === "tick") tick(h, +t.getAttribute("data-d"));
+    else if (a === "qtoggle") setQ(!$("#qdrawer").classList.contains("open"));
+    else if (a === "qclose") setQ(false);
     else if (a === "mk") mark(t.getAttribute("data-c"));
-    else if (a === "nprev") gotoNote(noteDay - 1);
-    else if (a === "nnext") gotoNote(noteDay + 1);
-    else if (a === "ntoday") gotoNote(todayIndex());
-    else if (a === "rtick") {
-      var r = state.rules[i]; r.done = !r.done;
-      r.date = r.done ? (r.date || iso(new Date())) : "";
-      persist(); renderRules();
-    }
+    else if (a === "nprev") gotoNote(noteDay - 1, -1);
+    else if (a === "nnext") gotoNote(noteDay + 1, 1);
+    else if (a === "ntoday") { var td = clampDay(todayIndex()); gotoNote(td, td > noteDay ? 1 : -1); }
+    else if (a === "rtick") { var r = state.rules[i]; r.done = !r.done; r.date = r.done ? (r.date || iso(new Date())) : ""; persist(); renderRules(); }
     else if (a === "delr") { if (arm(t, "r" + i, "Delete?")) { state.rules.splice(i, 1); persist(); renderRules(); } }
     else if (a === "addr") addRule();
     else if (a === "addh") {
@@ -555,23 +721,19 @@ body.editing .edittab { background: var(--accent); }
         var ins = document.querySelectorAll("#grid .hin"), last = ins[ins.length - 1]; if (last) { last.focus(); last.select(); }
       }
     }
-    else if (a === "delh") {
-      if (H() > 1 && arm(t, "h" + h, "Delete?")) { state.habits.splice(h, 1); state.marks.splice(h, 1); persist(); renderGrid(); renderCharts(); renderHead(); }
-    }
+    else if (a === "delh") { if (H() > 1 && arm(t, "h" + h, "Delete?")) { state.habits.splice(h, 1); state.marks.splice(h, 1); persist(); renderGrid(); renderCharts(); renderHead(); } }
     else if (a === "setday") { var n = parseInt($("#dayIn").value, 10); if (n >= 1 && n <= N) setStartForDay(n); }
     else if (a === "day1") setStartForDay(1);
-    else if (a === "clear") {
-      if (arm(t, "clear", "Tap again to clear")) { state.marks = state.habits.map(zeros); persist(); renderHead(); renderGrid(); renderCharts(); t.classList.remove("armed"); t.textContent = "Clear all ticks"; }
-    }
+    else if (a === "clear") { if (arm(t, "clear", "Tap again to clear")) { state.marks = state.habits.map(zeros); persist(); renderHead(); renderGrid(); renderCharts(); } }
+    else if (a === "restart") { if (arm(t, "restart", "Tap again to restart")) restart(); }
+    else if (a === "openj") openJ();
+    else if (a === "closej") closeJ();
+    else if (a === "jday") { jDay = +t.getAttribute("data-d"); renderJ(); }
+    else if (a === "jround") { jRound = +t.getAttribute("data-r"); renderJ(); }
   });
-  function addRule() {
-    var inp = $("#newRule"), v = inp.value.trim();
-    if (!v) { inp.focus(); return; }
-    state.rules.push({ t: v.slice(0, 120), done: false, date: "" });
-    inp.value = ""; persist(); renderRules(); inp.focus();
-  }
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Enter" && e.target.id === "newRule") { e.preventDefault(); addRule(); }
+    if (e.key === "Escape") { if (!$("#jview").hidden) closeJ(); else if ($("#qdrawer").classList.contains("open")) setQ(false); }
+    else if (e.key === "Enter" && e.target.id === "newRule") { e.preventDefault(); addRule(); }
     else if (e.key === "Enter" && e.target.classList && e.target.classList.contains("rin")) { e.preventDefault(); e.target.blur(); }
   });
   document.addEventListener("input", function (e) {
@@ -579,6 +741,12 @@ body.editing .edittab { background: var(--accent); }
     if (t.classList.contains("hin")) { state.habits[+t.getAttribute("data-h")] = t.value.slice(0, 40); persist(); }
     else if (t.classList.contains("rin")) { state.rules[+t.getAttribute("data-i")].t = t.value.slice(0, 120); persist(); }
     else if (t.id === "quote") saveNote();
+    else if (t.id === "jtext" && jRound < 0) {
+      var v = t.value.slice(0, JMAX);
+      if (v.trim()) state.journal[jDay] = v; else delete state.journal[jDay];
+      persist();
+      var ch = document.querySelector('#jchips [data-d="' + jDay + '"]'); if (ch) ch.classList.toggle("has", !!v.trim());
+    }
   });
   document.addEventListener("change", function (e) {
     var t = e.target;
@@ -586,25 +754,29 @@ body.editing .edittab { background: var(--accent); }
       var r = state.rules[+t.getAttribute("data-i")];
       r.date = ISO_RE.test(t.value) ? t.value : ""; r.done = !!r.date;
       persist(); renderRules();
-    }
+    } else if (t.id === "startIn") { if (ISO_RE.test(t.value)) setStart(t.value); }
+    else if (t.id === "showQ") { state.showQ = t.checked; persist(); }
   });
   document.addEventListener("focusout", function (e) {
     var t = e.target;
-    if (t.classList && t.classList.contains("hin")) { if (!t.value.trim()) { state.habits[+t.getAttribute("data-h")] = "Habit"; persist(); } renderGrid(); renderCharts(); }
-    else if (t.classList && t.classList.contains("rin")) renderRules();
+    if (!t.classList) return;
+    if (t.classList.contains("hin")) { if (!t.value.trim()) { state.habits[+t.getAttribute("data-h")] = "Habit"; persist(); } renderGrid(); renderCharts(); }
+    else if (t.classList.contains("rin")) renderRules();
+    else if (t.id === "quote" && plainEmpty(t.innerHTML)) t.innerHTML = "";
   });
-  // paste into the quote box as plain text
   $("#quote").addEventListener("paste", function (e) {
     e.preventDefault();
-    var txt = (e.clipboardData || window.clipboardData).getData("text");
-    document.execCommand("insertText", false, txt);
+    document.execCommand("insertText", false, (e.clipboardData || window.clipboardData).getData("text"));
   });
 
   renderAll();
+  setNote();
   scrollToToday();
+  setQ(false);
+  if (state.showQ) requestAnimationFrame(function () { requestAnimationFrame(function () { setQ(true); }); });
   setStatus("");
 
-  // ---------- sync across devices ----------
+  // ---------- sync across devices (only inside claude.ai, where a store exists) ----------
   (async function () {
     if (!window.claude || !window.claude.use) { setStatus("Saved on this device"); return; }
     try {
@@ -623,7 +795,7 @@ body.editing .edittab { background: var(--accent); }
             try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
             noteDay = clampDay(todayIndex());
             var ae = document.activeElement;
-            if (!(ae && ae.closest && ae.closest("#quote, .editpanel, #rules input, #grid input"))) { renderAll(); scrollToToday(); }
+            if (!(ae && ae.closest && ae.closest("#quote, .editpanel, #rules input, #grid input, #jview"))) { renderAll(); setNote(); scrollToToday(); }
           }
           setStatus("Saved");
         } else if (hadLocal) { persist(); }
@@ -633,7 +805,6 @@ body.editing .edittab { background: var(--accent); }
   })();
 })();
 </script>
-
 <script>
 if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
